@@ -1,4 +1,4 @@
-![fastt5 icon](data/fastT5.png)
+![fastt5 icon](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/fastT5.png)
 
 ## **Reduce T5 model size by 3X and increase the inference speed up to 5X.** 
  ![PyPI - License](https://img.shields.io/pypi/l/fastt5)   ![example workflow](https://github.com/ki6an/fastT5/actions/workflows/ci-workflow.yml/badge.svg) ![PyPI](https://img.shields.io/pypi/v/fastt5)  ![PyPI - Downloads](https://img.shields.io/pypi/dm/fastt5)
@@ -117,24 +117,24 @@ The benchmarks are the result of the T5-base model tested on English to French t
 ### Onnx model
 The following graph shows the latency of the quantized onnx model vs the PyTorch model for beam numbers varying from 1 to 9. The latencies shown here are for the mean of sequence lengths up to 130.
 
-![t5-base](data/t5-base.png)
+![t5-base](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5-base.png)
 
 The following heat map shows the X times faster which the ratio of latency of PyTorch to onnx model.
 The onnx model outperforms most cases. however, the speed of the model drops for a longer sequence length.
 
 
-![t5-base-hist](data/t5_base_h.png)
+![t5-base-hist](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5_base_h.png)
 
 ### Quantized onnx model
 Quantized models are lightweight models as mentioned earlier, these models have almost the same accuracy as the original model (quantized model scores are mentioned in the next section). Quantized onnx models have the lowest latency compared to both Onnx &  PyTorch models.
 
 
-![t5-base-quant](data/t5-base-quant.png)
+![t5-base-quant](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5-base-quant.png)
  
 The model outperforms the PyTorch model by 5.7X for greedy search on average and 3-4X for beam search.
 
 
-![t5-base-quant-hist](data/t5_base_quant_h.png)
+![t5-base-quant-hist](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5_base_quant_h.png)
 
 
 > Note : The results were generated on `AMD EPYC 7B12`, these results may vary from device to device. The Onnx models usually perform well on high-end CPUs with more cores.
