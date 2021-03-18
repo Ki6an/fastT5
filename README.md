@@ -160,7 +160,7 @@ The results were tested for English to French translation with beam search numbe
 
 ## Get Help
 - Contact me at kiranr8k@gmail.com
-- If appropriate, [open an issue](https://github.com/Ki6an/fastT5-draft/issues/new/choose) on GitHub
+- If appropriate, [open an issue](https://github.com/Ki6an/fastT5/issues/new/choose) on GitHub
 
 
 ## Acknowledgements
@@ -168,7 +168,7 @@ The results were tested for English to French translation with beam search numbe
 - [transformers](https://github.com/huggingface/transformers)  by huggingface
 - [onnx](https://github.com/onnx/onnx)
 - [onnxruntime ](https://github.com/microsoft/onnxruntime) by microsoft
-- [onnxt5]()
+- [onnxt5](https://github.com/abelriboulot/onnxt5)
 
 ```
 @article{2019t5,

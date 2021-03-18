@@ -1,24 +1,30 @@
 from time import perf_counter as pc
 from matplotlib import pyplot as plt
-import numpy as np
 from transformers import AutoTokenizer
 
+import numpy as np
 
-def speed_test(onnx_model, torch_model, beam_range: range = range(1, 10, 1),
-               seq_length_range: range = range(10, 500, 50), input_text=None,):
-    ''' 
-            method prints the time took for onnx and pytorch model to finish a text generation task 
 
-        args: 
-            input_text (str) : text input for the model.
-            onnx_model : onnx representation of the t5 model,
-            torch_model : torch represention of the t5 model,
-            beam_range (range) : provide a range, which takes starting end and steps (don't start with 0)
-            sequence_length-range (range) : takes the start, end and steps as a range (start with 10)
-        return :
-            onnx_model_latency : numpy array of latency for each beam number and sequence length 
-            pytorch_model_latency : numpy array of latency for each beam number and sequence length
-    '''
+def speed_test(
+    onnx_model,
+    torch_model,
+    beam_range: range = range(1, 10, 1),
+    seq_length_range: range = range(10, 500, 50),
+    input_text=None,
+):
+    """
+        method prints the time took for onnx and pytorch model to finish a text generation task
+
+    args:
+        input_text (str) : text input for the model.
+        onnx_model : onnx representation of the t5 model,
+        torch_model : torch represention of the t5 model,
+        beam_range (range) : provide a range, which takes starting end and steps (don't start with 0)
+        sequence_length-range (range) : takes the start, end and steps as a range (start with 10)
+    return :
+        onnx_model_latency : numpy array of latency for each beam number and sequence length
+        pytorch_model_latency : numpy array of latency for each beam number and sequence length
+    """
 
     if input_text is None:
         input_text = """translate English to French: A nucleus is a collection of a large number of up and down quarks, confined into triplets (neutrons and protons). According to the strange matter hypothesis, strangelets are more stable than nuclei, so nuclei are expected to decay into strangelets. But this process may be extremely slow because there is a large energy barrier to overcome: 
@@ -40,40 +46,43 @@ def speed_test(onnx_model, torch_model, beam_range: range = range(1, 10, 1),
         prev = [1, 2]
         for i in seq_length_range:
 
-            token = tokenizer(input_text,
-                              padding=True,
-                              truncation=True,
-                              max_length=i,
-                              pad_to_max_length=i,
-                              return_tensors='pt')
+            token = tokenizer(
+                input_text,
+                padding=True,
+                truncation=True,
+                max_length=i,
+                pad_to_max_length=i,
+                return_tensors="pt",
+            )
 
-            input_ids = token['input_ids']
-            attention_mask = token['attention_mask']
+            input_ids = token["input_ids"]
+            attention_mask = token["attention_mask"]
 
             a = pc()
-            out = onnx_model.generate(input_ids=input_ids,
-                                      attention_mask=attention_mask,
-                                      max_length=i,
-                                      num_beams=j
-                                      )
+            out = onnx_model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=i,
+                num_beams=j,
+            )
             b = pc()
-            x.append(b-a)
+            x.append(b - a)
 
             c = pc()
-            o = torch_model.generate(input_ids=input_ids,
-                                     attention_mask=attention_mask,
-                                     max_length=i,
-                                     num_beams=j
-                                     )
+            o = torch_model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_length=i,
+                num_beams=j,
+            )
             d = pc()
-            y.append(d-c)
+            y.append(d - c)
 
             mean_y = np.mean(y)
             mean_x = np.mean(x)
-            mean_ratio = mean_y/mean_x
+            mean_ratio = mean_y / mean_x
 
-            print(
-                f'seqL : {i}, onnx-{b-a}, pt-{d-c} .. X faster {(d-c)/(b-a)}')
+            print(f"seqL : {i}, onnx-{b-a}, pt-{d-c} .. X faster {(d-c)/(b-a)}")
 
             # ...bleu_score-{bleu.compute(predictions=, references=[[tokenizer.decode(o.squeeze(), skip_special_tokens=True)], ])}')
             # print(f'o---{tokenizer.decode(out.squeeze(), skip_special_tokens=True)}...p---{tokenizer.decode(o.squeeze(), skip_special_tokens=True)}')
@@ -83,13 +92,12 @@ def speed_test(onnx_model, torch_model, beam_range: range = range(1, 10, 1),
 
             prev.append(o.shape[1])
 
-        print(f'beam no.- {j} onnx-{mean_x} pt-{mean_y} X ratio-{mean_ratio}')
+        print(f"beam no.- {j} onnx-{mean_x} pt-{mean_y} X ratio-{mean_ratio}")
 
         xx.append(x)
         yy.append(y)
-        plt.plot(x, 'g', y, 'r')
+        plt.plot(x, "g", y, "r")
         plt.pause(0.05)
 
     plt.show()
     return np.array(xx), np.array(yy)
-

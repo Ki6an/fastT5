@@ -1,5 +1,11 @@
 import torch
-from transformers import T5Tokenizer, AutoTokenizer, AutoConfig, AutoModelForSeq2SeqLM, T5ForConditionalGeneration
+from transformers import (
+    T5Tokenizer,
+    AutoTokenizer,
+    AutoConfig,
+    AutoModelForSeq2SeqLM,
+    T5ForConditionalGeneration,
+)
 
 
 class DecoderWithLMhead(torch.nn.Module):
@@ -16,16 +22,16 @@ class DecoderWithLMhead(torch.nn.Module):
         input_ids, attention_mask, encoder_hidden_states = inputs[:3]
 
         list_pkv = inputs[3:]
-        past_key_values = tuple(list_pkv[i:i+4]
-                                for i in range(0, len(list_pkv), 4))
+        past_key_values = tuple(list_pkv[i : i + 4] for i in range(0, len(list_pkv), 4))
 
-        decoder_output = self.decoder(input_ids=input_ids,  # decoder_input_ids
-                                      encoder_attention_mask=attention_mask,
-                                      encoder_hidden_states=encoder_hidden_states,
-                                      past_key_values=past_key_values)
+        decoder_output = self.decoder(
+            input_ids=input_ids,  # decoder_input_ids
+            encoder_attention_mask=attention_mask,
+            encoder_hidden_states=encoder_hidden_states,
+            past_key_values=past_key_values,
+        )
 
-        lm_head_out = self.lm_head(
-            decoder_output[0] * (self.config.d_model ** -0.5))
+        lm_head_out = self.lm_head(decoder_output[0] * (self.config.d_model ** -0.5))
 
         return lm_head_out, decoder_output[1]
 
@@ -51,8 +57,13 @@ class DecoderWithLMheadInitial(torch.nn.Module):
         self.config = config
 
     def forward(self, input_ids, attention_mask, encoder_hidden_states):
-        decoder_output = self.decoder(input_ids=input_ids,
-                                      encoder_attention_mask=attention_mask,
-                                      encoder_hidden_states=encoder_hidden_states)
+        decoder_output = self.decoder(
+            input_ids=input_ids,
+            encoder_attention_mask=attention_mask,
+            encoder_hidden_states=encoder_hidden_states,
+        )
 
-        return self.lm_head(decoder_output[0] * (self.config.d_model ** -0.5)), decoder_output[1]
+        return (
+            self.lm_head(decoder_output[0] * (self.config.d_model ** -0.5)),
+            decoder_output[1],
+        )
