@@ -1,7 +1,23 @@
 ![fastt5 icon](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/fastT5.png)
 
-## **Reduce T5 model size by 3X and increase the inference speed up to 5X.** 
- ![PyPI - License](https://img.shields.io/pypi/l/fastt5)   ![example workflow](https://github.com/ki6an/fastT5/actions/workflows/ci-workflow.yml/badge.svg) ![PyPI](https://img.shields.io/pypi/v/fastt5)  ![PyPI - Downloads](https://img.shields.io/pypi/dm/fastt5)
+
+<h2 style="text-align:center; font-weight: bold">Reduce T5 model size by 3X and increase the inference speed up to 5X. 
+</h2>
+
+<p align="center">
+    <a href="https://github.com/Ki6an/fastT5/blob/master/LICENSE">
+        <img alt="GitHub" src="https://img.shields.io/github/license/ki6an/fastt5?color=blue">
+    </a>
+    <a href="https://github.com/Ki6an/fastT5/actions/workflows/ci-workflow.yml">
+        <img alt="Workflow" src="https://github.com/ki6an/fastT5/actions/workflows/ci-workflow.yml/badge.svg">
+    </a>
+    <a href="https://github.com/Ki6an/fastT5/releases" >
+        <img alt="PYPI release" src="https://img.shields.io/pypi/v/fastt5">
+    </a>
+    <a href="https://github.com/Ki6an/fastT5" >
+        <img alt="Workflow" src="https://img.shields.io/pypi/dm/fastt5">
+    </a>
+ </p>
 
 </br>
  
@@ -170,7 +186,7 @@ The results were tested for English to French translation with beam search numbe
 - [onnxruntime ](https://github.com/microsoft/onnxruntime) by microsoft
 - [onnxt5](https://github.com/abelriboulot/onnxt5)
 
-```
+```python
 @article{2019t5,
   author = {Colin Raffel and Noam Shazeer and Adam Roberts and Katherine Lee and Sharan Narang and Michael Matena and Yanqi Zhou and Wei Li and Peter J. Liu},
   title = {Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer},
