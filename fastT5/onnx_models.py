@@ -94,8 +94,7 @@ class T5Decoder(torch.nn.Module):
         flat_past_key_values = functools.reduce(operator.iconcat, past_key_values, [])
 
         past_key_values = {
-            f"input_{i}": pkv.cpu().numpy()
-            for i, pkv in enumerate(flat_past_key_values)
+            f"pkv_{i}": pkv.cpu().numpy() for i, pkv in enumerate(flat_past_key_values)
         }
 
         decoder_outputs = self.decoder.run(None, {**decoder_inputs, **past_key_values})

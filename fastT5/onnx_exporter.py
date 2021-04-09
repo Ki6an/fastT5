@@ -107,13 +107,13 @@ def generate_onnx_representation(pretrained_version=None, model=None):
     # cross_attention_past_key_values = torch.ones(
     #     (model_config.num_decoder_layers, 2, batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32)
 
-    a = torch.ones(
+    sa = torch.ones(
         (batch_size, n_heads, seq_length_a, d_kv), dtype=torch.float32
     )  # 1, 8, 1, 64
-    b = torch.ones(
+    ca = torch.ones(
         (batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32
     )  # 1, 8, 30, 64
-    t5_block = (a, a, b, b)
+    t5_block = (sa, sa, ca, ca)
     past_key_values = (t5_block,) * model_config.num_decoder_layers
 
     flat_past_key_values = functools.reduce(operator.iconcat, past_key_values, [])
@@ -141,7 +141,7 @@ def generate_onnx_representation(pretrained_version=None, model=None):
             "encoder_hidden_states",
         ]
 
-        pkv_input_names = ["input_{}".format(i) for i in range(0, num_of_inputs)]
+        pkv_input_names = ["pkv_{}".format(i) for i in range(0, num_of_inputs)]
 
         decoder_input_names = decoder_inputs + pkv_input_names
 
@@ -156,7 +156,7 @@ def generate_onnx_representation(pretrained_version=None, model=None):
         }
 
         dyn_pkv = {
-            "input_{}".format(i): {0: "batch", 1: "n_head", 2: "seq_length", 3: "d_kv"}
+            "pkv_{}".format(i): {0: "batch", 2: "seq_length"}
             for i in range(0, num_of_inputs)
         }
 
@@ -188,7 +188,6 @@ def generate_onnx_representation(pretrained_version=None, model=None):
             dynamic_axes={
                 "input_ids": {0: "batch", 1: "sequence"},
                 "attention_mask": {0: "batch", 1: "sequence"},
-                "encoder_hidden_states": {0: "batch", 1: "sequence"},
                 "hidden_states": {0: "batch", 1: "sequence"},
             },
         )
