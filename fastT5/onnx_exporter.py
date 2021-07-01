@@ -51,12 +51,11 @@ def turn_model_into_encoder_decoder(model):
     return simplified_encoder, decoder_with_lm_head, decoder_with_lm_head_init
 
 
-def generate_onnx_representation(pretrained_version=None, model=None, tokenizer_name_or_path=None, output_path=None):
+def generate_onnx_representation(pretrained_version=None, model=None, output_path=None):
     """Exports a given huggingface pretrained model, or a given model and tokenizer, to onnx
 
     Args:
         pretrained_version (str): Name of a pretrained model, or path to a pretrained / finetuned version of T5
-        tokenizer_name_or_path (str): if missing then use pretrained_version
         output_path (str): if missing then use ./models
     """
     if (pretrained_version is None) and model is None:
@@ -84,27 +83,21 @@ def generate_onnx_representation(pretrained_version=None, model=None, tokenizer_
         pretrained_version, output_path, quantized=False
     )
 
-    if tokenizer_name_or_path is None:
-        tokenizer_name_or_path = pretrained_version
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
-
-    sample_input = "translate English to French: The universe is a dark forest."
-    model_inputs = tokenizer(sample_input, return_tensors="pt")
     model_config = AutoConfig.from_pretrained(pretrained_version)
 
-    input_ids = model_inputs["input_ids"]
-    attention_mask = model_inputs["attention_mask"]
-
     # dummy inputs
-    batch_size = 5
+    batch_size = 1
+    seq_length = 1
+    input_ids = torch.ones(batch_size, seq_length, dtype=torch.int64)
+    attention_mask = torch.ones(batch_size, seq_length, dtype=torch.int64)
+
     n_heads = model_config.num_heads
-    seq_length_a, seq_length_b = input_ids.shape
     d_kv = model_config.d_kv
 
-    input_ids_dec = torch.ones((5, 1), dtype=torch.int64)
-    attention_mask_dec = torch.ones((5, seq_length_b), dtype=torch.int64)
+    input_ids_dec = torch.ones(batch_size, seq_length, dtype=torch.int64)
+    attention_mask_dec = torch.ones(batch_size, seq_length, dtype=torch.int64)
     enc_out = torch.ones(
-        (batch_size, seq_length_b, model_config.d_model), dtype=torch.float32
+        (batch_size, seq_length, model_config.d_model), dtype=torch.float32
     )
 
     # self_attention_past_key_values = torch.ones(
@@ -113,10 +106,10 @@ def generate_onnx_representation(pretrained_version=None, model=None, tokenizer_
     #     (model_config.num_decoder_layers, 2, batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32)
 
     sa = torch.ones(
-        (batch_size, n_heads, seq_length_a, d_kv), dtype=torch.float32
+        (batch_size, n_heads, batch_size, d_kv), dtype=torch.float32
     )  # 1, 8, 1, 64
     ca = torch.ones(
-        (batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32
+        (batch_size, n_heads, seq_length, d_kv), dtype=torch.float32
     )  # 1, 8, 30, 64
     t5_block = (sa, sa, ca, ca)
     past_key_values = (t5_block,) * model_config.num_decoder_layers

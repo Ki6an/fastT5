@@ -183,28 +183,30 @@ class OnnxT5(T5ForConditionalGeneration):
         return Seq2SeqLMOutput(logits=logits, past_key_values=past_key_values)
 
 
-def export_and_get_onnx_model(model_name_or_path, quantized=True, tokenizer_name_or_path=None):
-    """Method for whole pipeline: converts from pytorch to onnx --> quantizes model --> sets onnx runtime
-    --> builds whole onnx model with all sessions
-    Args:
-        model_name_or_path - a model in the HF format
-        quantized - if True then the output model will be quantized
-        tokenizer_name_or_path - if missing then use model_or_model_path
+def export_and_get_onnx_model(model_or_model_path, quantized=True):
+    """
+                          Method for whole pipeline,
+    converts from pytorch to onnx --> quantizes model --> sets onnx runtime
+                --> builds whole onnx model with all sessions
+
     """
 
     # Step 1. convert huggingfaces t5 model to onnx
-    onnx_model_paths = generate_onnx_representation(model_name_or_path, tokenizer_name_or_path=tokenizer_name_or_path)
+    onnx_model_paths = generate_onnx_representation(model_or_model_path)
 
     if quantized:
         # Step 2. (recommended) quantize the converted model for fast inference and to reduce model size.
-        onnx_model_paths = quantize(onnx_model_paths)
+        quant_model_paths = quantize(onnx_model_paths)
 
-    # step 3. setup onnx runtime
-    print("Setting up onnx model...")
-    model_sessions = get_onnx_runtime_sessions(onnx_model_paths)
+        # step 3. setup onnx runtime
+        print("Setting up onnx model...")
+        model_sessions = get_onnx_runtime_sessions(quant_model_paths)
+    else:
+        print("Setting up onnx model...")
+        model_sessions = get_onnx_runtime_sessions(onnx_model_paths)
 
     # step 4. get the onnx model
-    model = OnnxT5(model_name_or_path, model_sessions)
+    model = OnnxT5(model_or_model_path, model_sessions)
     print("Done!")
 
     return model
