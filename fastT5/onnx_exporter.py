@@ -51,11 +51,13 @@ def turn_model_into_encoder_decoder(model):
     return simplified_encoder, decoder_with_lm_head, decoder_with_lm_head_init
 
 
-def generate_onnx_representation(pretrained_version=None, model=None):
+def generate_onnx_representation(pretrained_version=None, model=None, tokenizer_name_or_path=None, output_path=None):
     """Exports a given huggingface pretrained model, or a given model and tokenizer, to onnx
 
     Args:
         pretrained_version (str): Name of a pretrained model, or path to a pretrained / finetuned version of T5
+        tokenizer_name_or_path (str): if missing then use pretrained_version
+        output_path (str): if missing then use ./models
     """
     if (pretrained_version is None) and model is None:
         print(
@@ -77,11 +79,14 @@ def generate_onnx_representation(pretrained_version=None, model=None):
         ) = create_t5_encoder_decoder(pretrained_version)
 
     # model paths for enc, dec and dec_init
+    output_path = saved_models_path if output_path is None else Path(output_path)
     encoder_path, decoder_path, init_decoder_path = get_model_paths(
-        pretrained_version, saved_models_path, quantized=False
+        pretrained_version, output_path, quantized=False
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(pretrained_version)
+    if tokenizer_name_or_path is None:
+        tokenizer_name_or_path = pretrained_version
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name_or_path)
 
     sample_input = "translate English to French: The universe is a dark forest."
     model_inputs = tokenizer(sample_input, return_tensors="pt")
