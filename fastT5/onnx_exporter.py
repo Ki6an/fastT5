@@ -51,11 +51,12 @@ def turn_model_into_encoder_decoder(model):
     return simplified_encoder, decoder_with_lm_head, decoder_with_lm_head_init
 
 
-def generate_onnx_representation(pretrained_version=None, model=None):
+def generate_onnx_representation(pretrained_version=None, model=None, output_path=None):
     """Exports a given huggingface pretrained model, or a given model and tokenizer, to onnx
 
     Args:
         pretrained_version (str): Name of a pretrained model, or path to a pretrained / finetuned version of T5
+        output_path (Optional[str]): if missing then use ./models
     """
     if (pretrained_version is None) and model is None:
         print(
@@ -77,29 +78,27 @@ def generate_onnx_representation(pretrained_version=None, model=None):
         ) = create_t5_encoder_decoder(pretrained_version)
 
     # model paths for enc, dec and dec_init
+    output_path = saved_models_path if output_path is None else Path(output_path)
     encoder_path, decoder_path, init_decoder_path = get_model_paths(
-        pretrained_version, saved_models_path, quantized=False
+        pretrained_version, output_path, quantized=False
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(pretrained_version)
-
-    sample_input = "translate English to French: The universe is a dark forest."
-    model_inputs = tokenizer(sample_input, return_tensors="pt")
     model_config = AutoConfig.from_pretrained(pretrained_version)
-
-    input_ids = model_inputs["input_ids"]
-    attention_mask = model_inputs["attention_mask"]
 
     # dummy inputs
     batch_size = 5
+    enc_seq_length = 10
+    dec_seq_length = 1  # a decoder sequence length is always one because it's just the last generated token
+    input_ids = torch.ones(batch_size, enc_seq_length, dtype=torch.int64)
+    attention_mask = torch.ones(batch_size, enc_seq_length, dtype=torch.int64)
+
     n_heads = model_config.num_heads
-    seq_length_a, seq_length_b = input_ids.shape
     d_kv = model_config.d_kv
 
-    input_ids_dec = torch.ones((5, 1), dtype=torch.int64)
-    attention_mask_dec = torch.ones((5, seq_length_b), dtype=torch.int64)
+    input_ids_dec = torch.ones(batch_size, dec_seq_length, dtype=torch.int64)
+    attention_mask_dec = torch.ones(batch_size, dec_seq_length, dtype=torch.int64)
     enc_out = torch.ones(
-        (batch_size, seq_length_b, model_config.d_model), dtype=torch.float32
+        (batch_size, enc_seq_length, model_config.d_model), dtype=torch.float32
     )
 
     # self_attention_past_key_values = torch.ones(
@@ -108,10 +107,10 @@ def generate_onnx_representation(pretrained_version=None, model=None):
     #     (model_config.num_decoder_layers, 2, batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32)
 
     sa = torch.ones(
-        (batch_size, n_heads, seq_length_a, d_kv), dtype=torch.float32
+        (batch_size, n_heads, dec_seq_length, d_kv), dtype=torch.float32
     )  # 1, 8, 1, 64
     ca = torch.ones(
-        (batch_size, n_heads, seq_length_b, d_kv), dtype=torch.float32
+        (batch_size, n_heads, enc_seq_length, d_kv), dtype=torch.float32
     )  # 1, 8, 30, 64
     t5_block = (sa, sa, ca, ca)
     past_key_values = (t5_block,) * model_config.num_decoder_layers
@@ -121,8 +120,6 @@ def generate_onnx_representation(pretrained_version=None, model=None):
     decoder_all_inputs = tuple(
         [input_ids_dec, attention_mask_dec, enc_out] + flat_past_key_values
     )
-
-    num_of_inputs = 4 * model_config.num_decoder_layers
 
     # for progress bars
     bar = Bar("Exporting to onnx...", max=3)
@@ -141,23 +138,26 @@ def generate_onnx_representation(pretrained_version=None, model=None):
             "encoder_hidden_states",
         ]
 
-        pkv_input_names = ["pkv_{}".format(i) for i in range(0, num_of_inputs)]
+        pkv_input_names = ["pkv_{}".format(i) for i in range(len(flat_past_key_values))]
 
         decoder_input_names = decoder_inputs + pkv_input_names
 
         decoder_output_names = ["logits", "output_past_key_values"]
 
+        dyn_axis_general = {0: "batch", 1: "sequence"}
+        dyn_axis_pkv = {0: "batch", 2: "seq_length"}
+
         dyn_axis = {
-            "input_ids": {0: "batch", 1: "sequence"},
-            "encoder_attention_mask": {0: "batch", 1: "sequence"},
-            "encoder_hidden_states": {0: "batch", 1: "sequence"},
-            "logits": {0: "batch", 1: "sequence"},
-            "output_past_key_values": {0: "batch", 1: "sequence"},
+            "input_ids": dyn_axis_general,
+            "encoder_attention_mask": dyn_axis_general,
+            "encoder_hidden_states": dyn_axis_general,
+            "logits": dyn_axis_general,
+            "output_past_key_values": dyn_axis_general,
         }
 
         dyn_pkv = {
-            "pkv_{}".format(i): {0: "batch", 2: "seq_length"}
-            for i in range(0, num_of_inputs)
+            "pkv_{}".format(i): dyn_axis_pkv
+            for i in range(len(flat_past_key_values))
         }
 
         dyn_axis_params = {**dyn_axis, **dyn_pkv}
@@ -186,9 +186,9 @@ def generate_onnx_representation(pretrained_version=None, model=None):
             input_names=["input_ids", "attention_mask"],
             output_names=["hidden_states"],
             dynamic_axes={
-                "input_ids": {0: "batch", 1: "sequence"},
-                "attention_mask": {0: "batch", 1: "sequence"},
-                "hidden_states": {0: "batch", 1: "sequence"},
+                "input_ids": dyn_axis_general,
+                "attention_mask": dyn_axis_general,
+                "hidden_states": dyn_axis_general,
             },
         )
         bar.next()
@@ -207,11 +207,11 @@ def generate_onnx_representation(pretrained_version=None, model=None):
             output_names=["logits", "past_key_values"],
             dynamic_axes={
                 # batch_size, seq_length = input_shape
-                "input_ids": {0: "batch", 1: "sequence"},
-                "encoder_hidden_states": {0: "batch", 1: "sequence"},
-                "logits": {0: "batch", 1: "sequence"},
-                "past_key_values": {0: "batch", 1: "sequence"},
-                "encoder_attention_mask": {0: "batch", 1: "sequence"},
+                "input_ids": dyn_axis_general,
+                "encoder_attention_mask": dyn_axis_general,
+                "encoder_hidden_states": dyn_axis_general,
+                "logits": dyn_axis_general,
+                "past_key_values": dyn_axis_general,
             },
         )
         bar.next()
