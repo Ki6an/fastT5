@@ -4,7 +4,7 @@ on: push
 
 jobs:
   build-n-publish:
-    name: Build and publish Publish fastT5 ⚡ to PyPI and TestPyPI
+    name: Build and Publish fastT5 ⚡ to PyPI and TestPyPI
     runs-on: ubuntu-18.04
 
     steps:

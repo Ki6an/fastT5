@@ -1,6 +1,6 @@
 name: Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -24,4 +24,4 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pytest tests/models_test.py --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+          pytest --cov tests tests/models_test.py --doctest-modules --junitxml=pytest.xml
