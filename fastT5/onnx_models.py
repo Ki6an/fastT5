@@ -1,3 +1,4 @@
+from .huggingface_utils import get_auth_token
 from .ort_settings import get_onnx_runtime_sessions
 from .onnx_exporter import (
     generate_onnx_representation,
@@ -116,7 +117,7 @@ class OnnxT5(T5ForConditionalGeneration):
     """ creates a T5 model using onnx sessions (encode, decoder & init_decoder) """
 
     def __init__(self, model_or_model_path, onnx_model_sessions):
-        config = T5Config.from_pretrained(model_or_model_path)
+        config = T5Config.from_pretrained(model_or_model_path, use_auth_token=get_auth_token())
         super().__init__(config)
 
         assert len(onnx_model_sessions) == 3, "all three models should be given"

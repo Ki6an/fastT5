@@ -1,3 +1,4 @@
+from .huggingface_utils import get_auth_token
 from .onnx_models_structure import (
     T5Encoder,
     DecoderWithLMhead,
@@ -34,7 +35,7 @@ def create_t5_encoder_decoder(pretrained_version="t5-base"):
         decoder_with_lm_head: pytorch t5 decoder with a language modeling head
     """
 
-    model = T5ForConditionalGeneration.from_pretrained(pretrained_version)
+    model = T5ForConditionalGeneration.from_pretrained(pretrained_version, use_auth_token=get_auth_token())
 
     return turn_model_into_encoder_decoder(model)
 
@@ -83,7 +84,7 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
         pretrained_version, output_path, quantized=False
     )
 
-    model_config = AutoConfig.from_pretrained(pretrained_version)
+    model_config = AutoConfig.from_pretrained(pretrained_version, use_auth_token=get_auth_token())
 
     # dummy inputs
     batch_size = 5
