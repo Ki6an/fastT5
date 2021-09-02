@@ -1,8 +1,8 @@
 ![fastt5 icon](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/fastT5.png)
 
-
-<h2 style="text-align:center; font-weight: bold">Reduce T5 model size by 3X and increase the inference speed up to 5X.
-</h2>
+<h1 style="text-align:center; font-weight:bold;
+font-size:1.875rem">Reduce T5 model size by 3X and increase the inference speed up to 5X.
+</h1>
 
 <p align="center">
     <a href="https://github.com/Ki6an/fastT5/blob/master/LICENSE">
@@ -21,7 +21,6 @@
 
 </br>
 
-
 - [Install](#install)
 - [Usage](#usage)
 - [Details](#details)
@@ -35,31 +34,33 @@
 - [Get Help](#get-help)
 - [Acknowledgements](#acknowledgements)
 
-
-T5 models can be used for several NLP tasks such as summarization, QA, QG, translation, text generation, and more. Sequential text generation is naturally slow,  and for larger T5 models it gets even slower. **fastT5** makes the T5 models inference faster by running it on onnxruntime. and it also decreases the model size by quantizing it.
+T5 models can be used for several NLP tasks such as summarization, QA, QG, translation, text generation, and more. Sequential text generation is naturally slow, and for larger T5 models it gets even slower. **fastT5** makes the T5 models inference faster by running it on onnxruntime. and it also decreases the model size by quantizing it.
 
 fastT5 library allows you to convert a pretrained T5 model to onnx, quantizes it, and gives the model as output which is running on an onnxruntime in a single line of code. You can also customize this whole process.
 
-
 ---
+
 ## Install
+
 You can install fastT5 from PyPI:
+
 ```python
  pip install fastt5
 ```
+
 If you want to build from source:
+
 ```python
 git clone https://github.com/Ki6an/fastT5
 cd fastT5
 pip3 install -e .
 ```
 
-
 ## Usage
 
 The `export_and_get_onnx_model()` method exports the given pretrained T5 model to onnx, quantizes it and runs it on the onnxruntime with default settings. The returned model from this method supports the `generate()` method of huggingface.
 
->If you don't wish to quantize the model then use `quantized=False` in the method.
+> If you don't wish to quantize the model then use `quantized=False` in the method.
 
 ```python
 from fastT5 import export_and_get_onnx_model
@@ -79,6 +80,7 @@ tokens = model.generate(input_ids=token['input_ids'],
 output = tokenizer.decode(tokens.squeeze(), skip_special_tokens=True)
 print(output)
 ```
+
 > to run the already exported model use `get_onnx_model()`
 
 you can customize the whole pipeline as shown in the below code example:
@@ -106,31 +108,32 @@ model = OnnxT5(model_or_model_path, model_sessions)
 ```
 
 ## Details
+
 T5 is a `seq2seq` model (Encoder-Decoder), as it uses decoder repeatedly for inference, we can't directly export the whole model to onnx. We need to export the encoder and decoder separately.
 
 > `past_key_values` contain pre-computed hidden-states (key and values in the self-attention blocks and cross-attention blocks) that can be used to speed up sequential decoding.
 
-models can only be exported with a constant number of inputs. Contrary to this, the decoder of the first step does not take `past_key_values` and the rest of the steps decoders do. To get around this issue,  we can create two decoders: one for the first step that does not take `past_key_values` and another for the rest of the steps that utilize the `past_key_values`.
+models can only be exported with a constant number of inputs. Contrary to this, the decoder of the first step does not take `past_key_values` and the rest of the steps decoders do. To get around this issue, we can create two decoders: one for the first step that does not take `past_key_values` and another for the rest of the steps that utilize the `past_key_values`.
 
 Next, we'll export all three models (encoder, decoder, init_decoder). And then quantize them, quantizing `32bit` to `8bit` should give the 4x memory reduction. Since there is an extra decoder the model size reduces by 3x.
 
 Finally, we'll run the quantized model on onnx runtime.
 
->The inference is simple as the model supports the [`generate()`](https://huggingface.co/transformers/main_classes/model.html?highlight=generate#transformers.generation_utils.GenerationMixin.generate) method of huggingface.
-
-
+> The inference is simple as the model supports the [`generate()`](https://huggingface.co/transformers/main_classes/model.html?highlight=generate#transformers.generation_utils.GenerationMixin.generate) method of huggingface.
 
 ## Functionalities
 
 - Export any pretrained T5 model to ONNX easily (with `past_key_values`).
 - The exported model supports beam search and greedy search and more via `generate()` method.
 - Reduce the model size by `3X` using quantization.
-- Up to `5X` speedup compared to PyTorch execution for greedy search and `3-4X`  for beam search.
+- Up to `5X` speedup compared to PyTorch execution for greedy search and `3-4X` for beam search.
 
 ## Benchmarks
+
 The benchmarks are the result of the T5-base model tested on English to French translation.
 
 ### Onnx model
+
 The following graph shows the latency of the quantized onnx model vs the PyTorch model for beam numbers varying from 1 to 9. The latencies shown here are for the mean of sequence lengths up to 130.
 
 ![t5-base](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5-base.png)
@@ -138,24 +141,22 @@ The following graph shows the latency of the quantized onnx model vs the PyTorch
 The following heat map shows the X times faster which the ratio of latency of PyTorch to onnx model.
 The onnx model outperforms most cases. however, the speed of the model drops for a longer sequence length.
 
-
 ![t5-base-hist](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5_base_h.png)
 
 ### Quantized onnx model
-Quantized models are lightweight models as mentioned earlier, these models have almost the same accuracy as the original model (quantized model scores are mentioned in the next section). Quantized onnx models have the lowest latency compared to both Onnx &  PyTorch models.
 
+Quantized models are lightweight models as mentioned earlier, these models have almost the same accuracy as the original model (quantized model scores are mentioned in the next section). Quantized onnx models have the lowest latency compared to both Onnx & PyTorch models.
 
 ![t5-base-quant](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5-base-quant.png)
 
 The model outperforms the PyTorch model by 5.7X for greedy search on average and 3-4X for beam search.
 
-
 ![t5-base-quant-hist](https://raw.githubusercontent.com/Ki6an/fastT5/master/data/t5_base_quant_h.png)
-
 
 > Note : The results were generated on `AMD EPYC 7B12`, these results may vary from device to device. The Onnx models usually perform well on high-end CPUs with more cores.
 
 ## Quantized model scores
+
 The results were tested for English to French translation with beam search number of 3.
 
 |                    | Bleu_4   | METEOR   | ROUGE_L  |
@@ -167,10 +168,9 @@ The results were tested for English to French translation with beam search numbe
 | t5-large (quant)   | 0.286726 | 0.316845 | 0.503585 |
 | t5-large (pytorch) | 0.294015 | 0.315774 | 0.508677 |
 
+## Private HuggingFace Model Hub Models
 
-## Private HugginFace Model Hub Models
-
-The [HUggingFace model hub](https://huggingface.co/models) supports private models. To use a private, pre-trained version of T5 with fastT5 you first must have authenticated into HuggingFace ecosystem with `$ transformers-cli login`. Then, when using fastT5, there is an extra import and call:
+The [HuggingFace model hub](https://huggingface.co/models) supports private models. To use a private, pre-trained version of T5 with fastT5 you first must have authenticated into HuggingFace ecosystem with `$ transformers-cli login`. Then, when using fastT5, there is an extra import and call:
 
 ```python
 from fastT5 import (
@@ -205,19 +205,19 @@ set_auth_token(auth_token)
 ```
 
 ## further improvements
+
 - currently the fastT5 library supports only the cpu version of onnxruntime, gpu implementation still needs to be done.
 - graph optimization of the onnx model will further reduce the latency.
 
-
-
 ## Get Help
+
 - Contact me at kiranr8k@gmail.com
 - If appropriate, [open an issue](https://github.com/Ki6an/fastT5/issues/new/choose) on GitHub
 
-
 ## Acknowledgements
+
 - [original T5 paper](https://arxiv.org/pdf/1910.10683.pdf)
-- [transformers](https://github.com/huggingface/transformers)  by huggingface
+- [transformers](https://github.com/huggingface/transformers) by huggingface
 - [onnx](https://github.com/onnx/onnx)
 - [onnxruntime ](https://github.com/microsoft/onnxruntime) by microsoft
 - [onnxt5](https://github.com/abelriboulot/onnxt5)
