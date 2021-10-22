@@ -17,7 +17,7 @@ def get_onnx_runtime_sessions(
     default: bool = True,
     opt_level: int = 99,
     parallel_exe_mode: bool = True,
-    n_threads: int = 4,
+    n_threads: int = 0,
     provider=[
         "CPUExecutionProvider",
     ],
@@ -26,17 +26,18 @@ def get_onnx_runtime_sessions(
             Optimizes the model
 
     Args:
-        path_to_encoder (str) : the path of input onnx encoder model.
-        path_to_decoder (str) : the path of input onnx decoder model.
-        path_to_initial_decoder (str) :  the path of input initial onnx decoder model.
+        model_paths (List or Tuple of str) : the path to, in order:
+            path_to_encoder (str) : the path of input onnx encoder model.
+            path_to_decoder (str) : the path of input onnx decoder model.
+            path_to_initial_decoder (str) :  the path of input initial onnx decoder model.
+        default : set this to true, ort will choose the best settings for your hardware.
+                  (you can test out different settings for better results.)
         opt_level (int) : sess_options.GraphOptimizationLevel param if set 1 uses 'ORT_ENABLE_BASIC',
                           2 for 'ORT_ENABLE_EXTENDED' and 99 for 'ORT_ENABLE_ALL',
                           default value is set to 99.
-        parallel_exe_mode (bool) :  Sets the execution mode. Default is parallel.
+        parallel_exe_mode (bool) :  Sets the execution mode. Default is True (parallel).
         n_threads (int) :  Sets the number of threads used to parallelize the execution within nodes. Default is 0 to let onnxruntime choose
         provider : execution providers list.
-        default : set this to true, ort will choose the best settings for your hardware.
-                  (you can test out different settings for better results.)
 
     Returns:
         encoder_session : encoder onnx InferenceSession
