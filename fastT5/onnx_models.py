@@ -6,6 +6,7 @@ from .onnx_exporter import (
     get_model_paths,
     saved_models_path,
 )
+from pathlib import Path
 
 from transformers import (
     T5Config,
@@ -222,7 +223,7 @@ def get_onnx_model(model_name_or_path, onnx_models_path=saved_models_path, quant
     """
 
     encoder_path, decoder_path, init_decoder_path = get_model_paths(
-        model_name_or_path, onnx_models_path, quantized
+        model_name_or_path, Path(onnx_models_path), quantized
     )
 
     if quantized:
