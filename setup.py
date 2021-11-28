@@ -45,6 +45,7 @@ setuptools.setup(
         "transformers==4.6.1",
         "progress>=1.5",
         "sentencepiece",
+        "psutil",
     ],
     classifiers=[
         "Intended Audience :: Developers",
