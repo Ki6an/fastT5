@@ -136,6 +136,7 @@ class OnnxT5(T5ForConditionalGeneration):
         decoder_attention_mask=None,
         head_mask=None,
         decoder_head_mask=None,
+        cross_attn_head_mask=None,
         encoder_outputs=None,
         past_key_values=None,
         inputs_embeds=None,
