@@ -219,7 +219,7 @@ set_auth_token(auth_token)
 - [original T5 paper](https://arxiv.org/pdf/1910.10683.pdf)
 - [transformers](https://github.com/huggingface/transformers) by huggingface
 - [onnx](https://github.com/onnx/onnx)
-- [onnxruntime ](https://github.com/microsoft/onnxruntime) by microsoft
+- [onnxruntime](https://github.com/microsoft/onnxruntime) by microsoft
 - [onnxt5](https://github.com/abelriboulot/onnxt5)
 
 ```python

@@ -42,7 +42,7 @@ setuptools.setup(
         "torch>=1.7.0,!=1.8.0",  # excludes torch v1.8.0
         "onnx",
         "onnxruntime==1.7.0",
-        "transformers>=4.12.5",
+        "transformers>4.6.1",
         "progress>=1.5",
         "sentencepiece",
         "psutil",
