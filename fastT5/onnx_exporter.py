@@ -52,12 +52,20 @@ def turn_model_into_encoder_decoder(model):
     return simplified_encoder, decoder_with_lm_head, decoder_with_lm_head_init
 
 
-def generate_onnx_representation(pretrained_version=None, model=None, output_path=None):
+def generate_onnx_representation(
+    pretrained_version=None,
+    model=None,
+    output_path=None,
+    input_sequence_length=256,
+    onnx_opset_version=12,  # no other opset versions are tested, change at your own risk
+):
     """Exports a given huggingface pretrained model, or a given model and tokenizer, to onnx
 
     Args:
         pretrained_version (str): Name of a pretrained model, or path to a pretrained / finetuned version of T5
         output_path (Optional[str]): if missing then use ./models
+        input_sequence_length (Optional[int]): typical input sequence length, for use by the ORT for possible optimization
+        onnx_opset_version (Optional[int]): ONNX Operator Set Version, default 12 is the only tested version
     """
     if (pretrained_version is None) and model is None:
         print(
@@ -86,9 +94,10 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
 
     model_config = AutoConfig.from_pretrained(pretrained_version, use_auth_token=get_auth_token())
 
-    # dummy inputs
-    batch_size = 5
-    enc_seq_length = 10
+    # Though these are dummy inputs, ORT optimizations do reference these values,
+    # so it is worth using values as close to production as possible
+    batch_size = 1  # not configurable since only CPU
+    enc_seq_length = input_sequence_length
     dec_seq_length = 1  # a decoder sequence length is always one because it's just the last generated token
     input_ids = torch.ones(batch_size, enc_seq_length, dtype=torch.int64)
     attention_mask = torch.ones(batch_size, enc_seq_length, dtype=torch.int64)
@@ -112,7 +121,7 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
     )  # 1, 8, 1, 64
     ca = torch.ones(
         (batch_size, n_heads, enc_seq_length, d_kv), dtype=torch.float32
-    )  # 1, 8, 30, 64
+    )  # 1, 8, variable, 64
     t5_block = (sa, sa, ca, ca)
     past_key_values = (t5_block,) * model_config.num_decoder_layers
 
@@ -170,7 +179,7 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
             decoder_path.as_posix(),
             export_params=True,
             do_constant_folding=True,
-            opset_version=12,
+            opset_version=onnx_opset_version,
             input_names=decoder_input_names,
             output_names=decoder_output_names,
             dynamic_axes=dyn_axis_params,
@@ -182,7 +191,7 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
             args=(input_ids, attention_mask),
             f=encoder_path.as_posix(),
             export_params=True,
-            opset_version=12,
+            opset_version=onnx_opset_version,
             do_constant_folding=True,
             input_names=["input_ids", "attention_mask"],
             output_names=["hidden_states"],
@@ -199,7 +208,7 @@ def generate_onnx_representation(pretrained_version=None, model=None, output_pat
             (input_ids_dec, attention_mask_dec, enc_out),
             init_decoder_path.as_posix(),
             export_params=True,
-            opset_version=12,
+            opset_version=onnx_opset_version,
             input_names=[
                 "input_ids",
                 "encoder_attention_mask",
@@ -251,12 +260,15 @@ def get_model_paths(pretrained_model, model_path, quantized):
 def quantize(models_name_or_path):
     """
     Quantize the weights of the model from float32 to in8 to allow very efficient inference on modern CPU
+
+    Uses unsigned ints for activation values, signed ints for weights, per
+    https://onnxruntime.ai/docs/performance/quantization.html#data-type-selection
+    it is faster on most CPU architectures
     Args:
         onnx_model_path: Path to location the exported ONNX model is stored
     Returns: The Path generated for the quantized
     """
-    import onnx
-    from onnxruntime.quantization import quantize, quantize_dynamic, QuantType
+    from onnxruntime.quantization import quantize_dynamic, QuantType
 
     bar = Bar("Quantizing...", max=3)
 
@@ -268,8 +280,9 @@ def quantize(models_name_or_path):
             model_input=model_name,
             model_output=output_model_name,
             per_channel=True,
+            reduce_range=True, # should be the same as per_channel
             activation_type=QuantType.QUInt8,
-            weight_type=QuantType.QUInt8,
+            weight_type=QuantType.QInt8,  # per docs, signed is faster on most CPUs
             optimize_model=False,
         )  # op_types_to_quantize=['MatMul', 'Relu', 'Add', 'Mul' ],
         quant_model_paths.append(output_model_name)
