@@ -8,15 +8,11 @@ from .onnx_exporter import (
 )
 
 from transformers import (
-    T5Config,
+    AutoConfig,
+    MT5Config,
     T5ForConditionalGeneration,
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
-    T5Tokenizer,
 )
-from transformers.generation_utils import GenerationMixin
 from transformers.modeling_outputs import (
-    BaseModelOutputWithPast,
     Seq2SeqLMOutput,
     BaseModelOutput,
 )
@@ -110,15 +106,27 @@ class T5Decoder(torch.nn.Module):
         return torch.from_numpy(decoder_outputs[0]), out_past_key_values
 
 
-# config = T5Config.from_pretrained(model_or_model_path)
-
-
 class OnnxT5(T5ForConditionalGeneration):
     """ creates a T5 model using onnx sessions (encode, decoder & init_decoder) """
 
     def __init__(self, model_or_model_path, onnx_model_sessions):
-        config = T5Config.from_pretrained(model_or_model_path, use_auth_token=get_auth_token())
+        config = AutoConfig.from_pretrained(model_or_model_path, use_auth_token=get_auth_token())
         super().__init__(config)
+
+        # monkeypatch to work for MT5
+        if (
+            isinstance(model_or_model_path, str) and 'mt5' in model_or_model_path.lower()
+        ) or (
+            hasattr(model_or_model_path, "name_or_path") and "mt5" in model_or_model_path.name_or_path
+        ):
+            self.model_type = "mt5"
+            self.config_class = MT5Config
+            self._keys_to_ignore_on_load_missing = [
+                r"encoder\.embed_tokens\.weight",
+            ]
+            self._keys_to_ignore_on_save = [
+                r"encoder\.embed_tokens\.weight",
+            ]
 
         assert len(onnx_model_sessions) == 3, "all three models should be given"
 
