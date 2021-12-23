@@ -1,11 +1,4 @@
 import torch
-from transformers import (
-    T5Tokenizer,
-    AutoTokenizer,
-    AutoConfig,
-    AutoModelForSeq2SeqLM,
-    T5ForConditionalGeneration,
-)
 
 
 class DecoderWithLMhead(torch.nn.Module):
