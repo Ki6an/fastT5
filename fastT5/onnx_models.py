@@ -198,7 +198,9 @@ class OnnxT5(T5ForConditionalGeneration):
         return Seq2SeqLMOutput(logits=logits, past_key_values=past_key_values)
 
 
-def export_and_get_onnx_model(model_or_model_path, custom_output_path, quantized=True):
+def export_and_get_onnx_model(
+    model_or_model_path, custom_output_path=saved_models_path, quantized=True
+):
     """
                           Method for whole pipeline,
     converts from pytorch to onnx --> quantizes model --> sets onnx runtime
