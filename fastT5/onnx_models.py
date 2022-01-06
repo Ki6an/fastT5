@@ -108,17 +108,21 @@ class T5Decoder(torch.nn.Module):
 
 
 class OnnxT5(T5ForConditionalGeneration):
-    """ creates a T5 model using onnx sessions (encode, decoder & init_decoder) """
+    """creates a T5 model using onnx sessions (encode, decoder & init_decoder)"""
 
     def __init__(self, model_or_model_path, onnx_model_sessions):
-        config = AutoConfig.from_pretrained(model_or_model_path, use_auth_token=get_auth_token())
+        config = AutoConfig.from_pretrained(
+            model_or_model_path, use_auth_token=get_auth_token()
+        )
         super().__init__(config)
 
         # monkeypatch to work for MT5
         if (
-            isinstance(model_or_model_path, str) and 'mt5' in model_or_model_path.lower()
+            isinstance(model_or_model_path, str)
+            and "mt5" in model_or_model_path.lower()
         ) or (
-            hasattr(model_or_model_path, "name_or_path") and "mt5" in model_or_model_path.name_or_path
+            hasattr(model_or_model_path, "name_or_path")
+            and "mt5" in model_or_model_path.name_or_path
         ):
             self.model_type = "mt5"
             self.config_class = MT5Config
@@ -194,7 +198,7 @@ class OnnxT5(T5ForConditionalGeneration):
         return Seq2SeqLMOutput(logits=logits, past_key_values=past_key_values)
 
 
-def export_and_get_onnx_model(model_or_model_path, quantized=True):
+def export_and_get_onnx_model(model_or_model_path, custom_output_path, quantized=True):
     """
                           Method for whole pipeline,
     converts from pytorch to onnx --> quantizes model --> sets onnx runtime
@@ -203,7 +207,9 @@ def export_and_get_onnx_model(model_or_model_path, quantized=True):
     """
 
     # Step 1. convert huggingfaces t5 model to onnx
-    onnx_model_paths = generate_onnx_representation(model_or_model_path)
+    onnx_model_paths = generate_onnx_representation(
+        model_or_model_path, output_path=custom_output_path
+    )
 
     if quantized:
         # Step 2. (recommended) quantize the converted model for fast inference and to reduce model size.
@@ -223,12 +229,14 @@ def export_and_get_onnx_model(model_or_model_path, quantized=True):
     return model
 
 
-def get_onnx_model(model_name_or_path, onnx_models_path=saved_models_path, quantized=True):
-    """ 
+def get_onnx_model(
+    model_name_or_path, onnx_models_path=saved_models_path, quantized=True
+):
+    """
     method gets the onnx model, if already converted models exists
     Example:
-    >> get_onnx_model(model_name_or_path="t5-finetuned", onnx_models_path="../models/onnx/quantized/") 
-    
+    >> get_onnx_model(model_name_or_path="t5-finetuned", onnx_models_path="../models/onnx/quantized/")
+
     """
 
     encoder_path, decoder_path, init_decoder_path = get_model_paths(

@@ -106,6 +106,22 @@ model = OnnxT5(model_or_model_path, model_sessions)
 
                       ...
 ```
+##### custom output paths 
+By default, fastT5 creates a `models` folder in the current directory and stores all the models. You can provide a custom path for a folder to store the exported models. And to run already `exported models` that are stored in a custom folder path: use `get_onnx_model(onnx_models_path="/path/to/custom/folder/")`
+
+```python
+from fastT5 import export_and_get_onnx_model, get_onnx_model
+
+model_name = "t5-small"
+custom_output_path = "/path/to/custom/folder/"
+
+# 1. stores models to custom_output_path
+model = export_and_get_onnx_model(model_name, custom_output_path)
+
+# 2. run already exported models that are stored in custom path
+# model = get_onnx_model(model_name, custom_output_path)
+
+```
 
 ## Details
 

@@ -72,8 +72,8 @@ def generate_onnx_representation(
         print(
             "You need to specify pretrained_version (the pretrained model you wish to export). Alternatively you can export a model you have in memory."
         )
-
         return
+
     if model is not None:
         (
             simplified_encoder,
