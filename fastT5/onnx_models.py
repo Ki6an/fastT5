@@ -199,7 +199,10 @@ class OnnxT5(T5ForConditionalGeneration):
 
 
 def export_and_get_onnx_model(
-    model_or_model_path, custom_output_path=saved_models_path, quantized=True
+    model_or_model_path,
+    custom_output_path=saved_models_path,
+    quantized=True,
+    input_sequence_length=256
 ):
     """
                           Method for whole pipeline,
@@ -210,7 +213,9 @@ def export_and_get_onnx_model(
 
     # Step 1. convert huggingfaces t5 model to onnx
     onnx_model_paths = generate_onnx_representation(
-        model_or_model_path, output_path=custom_output_path
+        model_or_model_path,
+        output_path=custom_output_path,
+        input_sequence_length=input_sequence_length
     )
 
     if quantized:
