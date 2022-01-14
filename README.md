@@ -73,6 +73,10 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 t_input = "translate English to French: The universe is a dark forest."
 token = tokenizer(t_input, return_tensors='pt')
 
+# only necessary when using cuda               
+model = model.to('cuda')
+token = token.to('cuda')
+
 tokens = model.generate(input_ids=token['input_ids'],
                attention_mask=token['attention_mask'],
                num_beams=2)
