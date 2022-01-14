@@ -39,9 +39,9 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.5",
     install_requires=[
-        "torch>=1.7.0,!=1.8.0",  # excludes torch v1.8.0
+        "torch>=1.7.0",
         "onnx",
-        "onnxruntime==1.7.0",
+        "onnxruntime-gpu>=1.7.0",
         "transformers>4.6.1",
         "progress>=1.5",
         "sentencepiece",
