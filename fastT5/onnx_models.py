@@ -20,6 +20,7 @@ from transformers.modeling_outputs import (
 import torch
 import functools
 import operator
+import numpy as np
 
 
 class T5Encoder(torch.nn.Module):
@@ -37,18 +38,25 @@ class T5Encoder(torch.nn.Module):
         output_hidden_states=None,
         return_dict=None,
     ):
+        device = input_ids.device.type
+        io_binding = self.encoder.io_binding()
+        io_binding.bind_input(name="input_ids",
+                                device_type=device,
+                                device_id=input_ids.device.index if input_ids.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(input_ids.shape),
+                                buffer_ptr=input_ids.data_ptr())
+        io_binding.bind_input(name="attention_mask",
+                                device_type=device,
+                                device_id=attention_mask.device.index if attention_mask.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(attention_mask.shape),
+                                buffer_ptr=attention_mask.data_ptr()) 
+        io_binding.bind_output("hidden_states", input_ids.device.type)                                                             
+        self.encoder.run_with_iobinding(io_binding)                                
+        ort_output = io_binding.get_outputs()[0]
 
-        encoder_hidden_state = torch.from_numpy(
-            self.encoder.run(
-                None,
-                {
-                    "input_ids": input_ids.cpu().numpy(),
-                    "attention_mask": attention_mask.cpu().numpy(),
-                },
-            )[0]
-        )
-
-        return BaseModelOutput(encoder_hidden_state)
+        return BaseModelOutput(ort_output)
 
 
 class T5DecoderInit(torch.nn.Module):
@@ -57,24 +65,39 @@ class T5DecoderInit(torch.nn.Module):
         self.decoder = decoder_sess
 
     def forward(self, input_ids, encoder_attention_mask, encoder_hidden_states):
+        device = input_ids.device.type
+        io_binding = self.decoder.io_binding()
+        io_binding.bind_input(name="input_ids",
+                                device_type=device,
+                                device_id=input_ids.device.index if input_ids.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(input_ids.shape),
+                                buffer_ptr=input_ids.data_ptr())
+        io_binding.bind_input(name="encoder_attention_mask",
+                                device_type=device,
+                                device_id=encoder_attention_mask.device.index if encoder_attention_mask.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(encoder_attention_mask.shape),
+                                buffer_ptr=encoder_attention_mask.data_ptr())
+                              
+        io_binding.bind_ortvalue_input("encoder_hidden_states", encoder_hidden_states)
+        io_binding.bind_output("logits", device)
+        io_binding.bind_output("past_key_values", device)
 
-        decoder_outputs = self.decoder.run(
-            None,
-            {
-                "input_ids": input_ids.cpu().numpy(),
-                "encoder_attention_mask": encoder_attention_mask.cpu().numpy(),
-                "encoder_hidden_states": encoder_hidden_states.cpu().numpy(),
-            },
-        )
+        for arg in self.decoder.get_outputs():
+            io_binding.bind_output(arg.name, device)
 
-        list_pkv = tuple(torch.from_numpy(x) for x in decoder_outputs[1:])
+        self.decoder.run_with_iobinding(io_binding)
+        ort_output = io_binding.get_outputs()
+        logits = ort_output[0]
+
+        list_pkv = tuple(x for x in ort_output[1:])
 
         out_past_key_values = tuple(
             list_pkv[i : i + 4] for i in range(0, len(list_pkv), 4)
         )
 
-        return torch.from_numpy(decoder_outputs[0]), out_past_key_values
-
+        return torch.from_numpy(logits.numpy()).to(device), out_past_key_values
 
 class T5Decoder(torch.nn.Module):
     def __init__(self, decoder_sess):
@@ -82,29 +105,48 @@ class T5Decoder(torch.nn.Module):
         self.decoder = decoder_sess
 
     def forward(self, input_ids, attention_mask, encoder_output, past_key_values):
-
-        decoder_inputs = {
-            "input_ids": input_ids.cpu().numpy(),
-            "encoder_attention_mask": attention_mask.cpu().numpy(),
-            "encoder_hidden_states": encoder_output.cpu().numpy(),
-        }
+        device = input_ids.device.type
+        io_binding = self.decoder.io_binding()
+        io_binding.bind_input(name="input_ids",
+                                device_type=device,
+                                device_id=input_ids.device.index if input_ids.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(input_ids.shape),
+                                buffer_ptr=input_ids.data_ptr())
+        io_binding.bind_input(name="encoder_attention_mask",
+                                device_type=device,
+                                device_id=attention_mask.device.index if attention_mask.device.index else 0,
+                                element_type=np.longlong,
+                                shape=list(attention_mask.shape),
+                                buffer_ptr=attention_mask.data_ptr())
+                              
+        io_binding.bind_ortvalue_input("encoder_hidden_states", encoder_output)
 
         flat_past_key_values = functools.reduce(operator.iconcat, past_key_values, [])
 
-        past_key_values = {
-            f"pkv_{i}": pkv.cpu().numpy() for i, pkv in enumerate(flat_past_key_values)
-        }
+        past_key_values = [
+            (f"pkv_{i}", pkv) for i, pkv in enumerate(flat_past_key_values)
+        ]
+        
+        for pkv in past_key_values:
+            io_binding.bind_ortvalue_input(pkv[0], pkv[1])
+        for arg in self.decoder.get_outputs():
+            io_binding.bind_output(arg.name, device)
 
-        decoder_outputs = self.decoder.run(None, {**decoder_inputs, **past_key_values})
-        # converts each value of the list to tensor from numpy
-        list_pkv = tuple(torch.from_numpy(x) for x in decoder_outputs[1:])
+        self.decoder.run_with_iobinding(io_binding)
+        ort_output = io_binding.get_outputs()
+        logits = ort_output[0]
+
+        list_pkv = tuple(x for x in ort_output[1:])
 
         # creates a tuple of tuples of shape 6x4 from the above tuple
         out_past_key_values = tuple(
             list_pkv[i : i + 4] for i in range(0, len(list_pkv), 4)
         )
 
-        return torch.from_numpy(decoder_outputs[0]), out_past_key_values
+        # values of logits are not directly accessible. The workaround implies creating a new Tensor from
+        # the numpy representation. A direct way to forward the Tensor would increase speed.
+        return torch.from_numpy(logits.numpy()).to(device), out_past_key_values
 
 
 class OnnxT5(T5ForConditionalGeneration):
@@ -194,7 +236,7 @@ class OnnxT5(T5ForConditionalGeneration):
             )
 
             logits, past_key_values = onnx_outputs
-
+                
         return Seq2SeqLMOutput(logits=logits, past_key_values=past_key_values)
 
 

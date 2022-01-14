@@ -19,6 +19,7 @@ def get_onnx_runtime_sessions(
     parallel_exe_mode: bool = True,
     n_threads: int = 0,
     provider=[
+        'CUDAExecutionProvider',
         "CPUExecutionProvider",
     ],
 ) -> InferenceSession:
@@ -49,11 +50,11 @@ def get_onnx_runtime_sessions(
 
     if default:
 
-        encoder_sess = InferenceSession(str(path_to_encoder))
+        encoder_sess = InferenceSession(str(path_to_encoder), providers=provider)
 
-        decoder_sess = InferenceSession(str(path_to_decoder))
+        decoder_sess = InferenceSession(str(path_to_decoder), providers=provider)
 
-        decoder_sess_init = InferenceSession(str(path_to_initial_decoder))
+        decoder_sess_init = InferenceSession(str(path_to_initial_decoder), providers=provider)
 
     else:
 
