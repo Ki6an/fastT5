@@ -8,7 +8,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setuptools.setup(
     name="fastt5",
-    version="0.1.2",
+    version="0.1.3",
     license="apache-2.0",
     author="Kiran R",
     author_email="kiranr8k@gmail.com",
@@ -41,7 +41,7 @@ setuptools.setup(
     install_requires=[
         "torch>=1.7.0,!=1.8.0",  # excludes torch v1.8.0
         "onnx",
-        "onnxruntime==1.7.0",
+        "onnxruntime==1.10.0",
         "transformers>4.6.1",
         "progress>=1.5",
         "sentencepiece",

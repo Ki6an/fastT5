@@ -26,6 +26,7 @@ class T5Encoder(torch.nn.Module):
     def __init__(self, encoder_sess):
         super().__init__()
         self.encoder = encoder_sess
+        self.main_input_name = "input_ids"
 
     def forward(
         self,
@@ -231,9 +232,7 @@ def export_and_get_onnx_model(
     return model
 
 
-def get_onnx_model(
-    model_name_or_path, onnx_models_path=saved_models_path, quantized=True
-):
+def get_onnx_model(model_name, onnx_models_path=saved_models_path, quantized=True):
     """
     method gets the onnx model, if already converted models exists
     Example:
@@ -242,7 +241,7 @@ def get_onnx_model(
     """
 
     encoder_path, decoder_path, init_decoder_path = get_model_paths(
-        model_name_or_path, Path(onnx_models_path), quantized
+        model_name, Path(onnx_models_path), quantized
     )
 
     if quantized:
