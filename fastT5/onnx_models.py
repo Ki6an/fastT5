@@ -26,6 +26,7 @@ class T5Encoder(torch.nn.Module):
     def __init__(self, encoder_sess):
         super().__init__()
         self.encoder = encoder_sess
+        self.main_input_name = "input_ids"
 
     def forward(
         self,
