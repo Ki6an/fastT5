@@ -236,7 +236,7 @@ def get_onnx_model(model_name, onnx_models_path=saved_models_path, quantized=Tru
     """
     method gets the onnx model, if already converted models exists
     Example:
-    >> get_onnx_model(model_name_or_path="t5-finetuned", onnx_models_path="../models/onnx/quantized/")
+    >> get_onnx_model(model_name="t5-finetuned", onnx_models_path="../models/onnx/quantized/")
 
     """
 
@@ -261,6 +261,6 @@ def get_onnx_model(model_name, onnx_models_path=saved_models_path, quantized=Tru
 
     model_sessions = get_onnx_runtime_sessions(model_paths)
 
-    model = OnnxT5(model_name_or_path, model_sessions)
+    model = OnnxT5(model_name, model_sessions)
 
     return model
