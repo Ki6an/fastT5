@@ -8,7 +8,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setuptools.setup(
     name="fastt5",
-    version="0.1.3",
+    version="0.1.4",
     license="apache-2.0",
     author="Kiran R",
     author_email="kiranr8k@gmail.com",
