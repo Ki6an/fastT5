@@ -141,6 +141,7 @@ class OnnxT5(T5ForConditionalGeneration):
         self.encoder = T5Encoder(encoder_sess)
         self.decoder = T5Decoder(decoder_sess)
         self.decoder_init = T5DecoderInit(decoder_sess_init)
+        self.main_input_name = 'input_ids'
 
     def forward(
         self,
