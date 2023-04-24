@@ -282,7 +282,6 @@ def quantize(models_name_or_path):
             model_output=output_model_name,
             per_channel=True,
             reduce_range=True, # should be the same as per_channel
-            activation_type=QuantType.QUInt8,
             weight_type=QuantType.QInt8,  # per docs, signed is faster on most CPUs
             optimize_model=False,
         )  # op_types_to_quantize=['MatMul', 'Relu', 'Add', 'Mul' ],
